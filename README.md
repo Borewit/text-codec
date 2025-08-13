@@ -6,11 +6,31 @@
 
 # `@borewit/text-codec`
 
-A **lightweight text encoding/decoding polyfill** for JavaScript engines (like [Hermes](https://hermesengine.dev/)) which lack support for certain `TextEncoder` / `TextDecoder` encoding types.
+A **lightweight alternative implementation** of `TextEncoder` / `TextDecoder` supporting common encodings missing in some JavaScript engines and Node.js builds.  
+Works in environments like **Hermes** (React Native) or **Small-ICU Node.js** where only UTF-8 and UTF-16LE are available.
 
-This module implements manual encoding and decoding for the most commonly used encodings, without pulling in large dependencies or experimental features.
+| Encoding                  | Hermes — **Encode** | Hermes — **Decode** | Small-ICU Node.js — **Encode** | Small-ICU Node.js — **Decode** |
+|---------------------------|---------------------|---------------------|--------------------------------|--------------------------------|
+| **utf-8** / `utf8`        | ➕                   | Native              | Native                         | Native                         |
+| **utf-16le**              | ➕                   | ➕                   | Native                         | Native                         |
+| **ascii**                 | ➕                   | ➕                   | ➕                              | ➕                              |
+| **latin1** / `iso-8859-1` | ➕                   | ➕                   | ➕                              | Native (sometimes)             |
+| **windows-1252**          | ➕                   | ➕                   | ➕                              | ➕                              |
+
+**Legend:**
+- **Native** — Supported natively by the JavaScript engine.
+- **➕** — Support added by this module.
+- **Native (sometimes)** — Available in some builds (e.g., certain Small-ICU Node.js builds).
+---
+
+When your project needs to handle encodings like `latin1` / `iso-8859-1` or `windows-1252` in these environments,
+native `TextDecoder` / `TextEncoder` may throw an error or return incorrect results.
 
 ## ✨ Features
+
+- Decoding and encoding
+- Lightweight
+- Typed
 
 ### Supported encodings:
 - `utf-8` / `utf8`

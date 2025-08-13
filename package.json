@@ -50,7 +50,8 @@
     "polyfill",
     "character-set",
     "latin",
-    "hermes"
+    "hermes",
+    "react"
   ],
   "repository": {
     "type": "git",
