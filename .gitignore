@@ -1,0 +1,18 @@
+*.iml
+node_modules
+coverage
+.nyc_output
+lib/**/*.js
+lib/**/*.js.map
+lib/**/*.d.ts
+test/**/*.js
+test/**/*.js.map
+test/**/*.d.ts
+
+.pnp.*
+.yarn/*
+
+**/*.log
+
+# IntelliJ IDEA
+.idea
