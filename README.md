@@ -1,6 +1,8 @@
-[![CI](https://github.com/Borewit/text-codec/actions/workflows/nodejs-ci.yml/badge.svg)](https://github.com/Borewit/text-codec/actions/workflows/nodejs-ci.yml)
+[![CI](https://github.com/Borewit/text-codec/actions/workflows/ci.yml/badge.svg)](https://github.com/Borewit/text-codec/actions/workflows/ci.yml)
 [![npm version](https://badge.fury.io/js/%40borewit%2Ftext-codec.svg)](https://www.npmjs.com/package/@borewit/text-codec)
 [![npm downloads](http://img.shields.io/npm/dm/@borewit/text-codec.svg)](https://npmcharts.com/compare/@borewit/text-codec?interval=30)
+![bundlejs](https://deno.bundlejs.com/?q=@borewit/text-codec&badge)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?logo=open-source-initiative&logoColor=white)](LICENSE.txt)
 
 # `@borewit/text-codec`
 
@@ -10,15 +12,12 @@ This module implements manual encoding and decoding for the most commonly used e
 
 ## ✨ Features
 
-- **Supported encodings**:
-    - `utf-8` / `utf8`
-    - `utf-16le`
-    - `ascii`
-    - `latin1` / `iso-8859-1`
-    - `windows-1252`
-- **No JSON imports** or experimental syntax
-- **Native fallback** for UTF-8 when `TextEncoder` / `TextDecoder` is available
-- **Pure TypeScript** — runs in browsers, Node.js, and embedded JS engines
+### Supported encodings:
+- `utf-8` / `utf8`
+- `utf-16le`
+- `ascii`
+- `latin1` / `iso-8859-1`
+- `windows-1252`
 
 ---
 
@@ -28,21 +27,16 @@ This module implements manual encoding and decoding for the most commonly used e
 npm install @borewit/text-codec
 ```
 
+
 # 📚 API Documentation
 
-## `textDecode(bytes, encoding = "utf-8"): string`
+## `textDecode(bytes, encoding): string`
 
 Decodes binary data into a JavaScript string using the specified encoding.
 
 **Parameters**
 - `bytes` (`Uint8Array`) — The binary data to decode.
 - `encoding` (`SupportedEncoding`, optional) — Encoding type. Defaults to `"utf-8"`.  
-  Supported values:
-  - `"utf-8"` / `"utf8"`
-  - `"utf-16le"`
-  - `"ascii"`
-  - `"latin1"` / `"iso-8859-1"`
-  - `"windows-1252"`
 
 **Returns**
 - `string` — The decoded text.
@@ -52,21 +46,17 @@ Decodes binary data into a JavaScript string using the specified encoding.
 import { textDecode } from "@borewit/text-encode";
 
 const bytes = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]);
-console.log(textDecode(bytes, "ascii")); // "Hello"
-textEncode(input = "", encoding = "utf-8") // Uint8Array
+const text = textDecode(bytes, "ascii");
+console.log(text); // "Hello"
 ```
 Encodes a JavaScript string into binary form using the specified encoding.
 
+## `textEncode(input, encoding): Uint8Array`
+
 **Parameters**
 
-- `input` (string) — The string to encode.
-- `encoding` (SupportedEncoding, optional) — Encoding type. Defaults to "utf-8".
-  Supported values:
-  - `"utf-8"` / `"utf8"`
-  - `"utf-16le"`
-  - `"ascii"`
-  - `"latin1"` / `"iso-8859-1"`
-  - `"windows-1252"`
+- `input` (`string`) — The string to encode.
+- `encoding` (`SupportedEncoding`, optional) — Encoding type. Defaults to `"utf-8"`.
 
 **Returns**
 
@@ -80,6 +70,7 @@ const bytes = textEncode("Hello", "utf-16le");
 console.log(bytes); // Uint8Array([...])
 ```
 
-## Licence
+## 📜 Licence
 
 This project is licensed under the [MIT License](LICENSE.txt). Feel free to use, modify, and distribute as needed.
+ 
