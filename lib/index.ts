@@ -1,5 +1,3 @@
-// text-polyfill.ts
-// Minimal encode/decode for utf-8, utf-16le, ascii, latin1, windows-1252
 
 export type SupportedEncoding =
   | "utf-8"
