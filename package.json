@@ -1,6 +1,6 @@
 {
   "name": "@borewit/text-codec",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Text Decoder",
   "type": "module",
   "exports": "./lib/index.js",
