@@ -1,5 +1,5 @@
 [![CI](https://github.com/Borewit/text-codec/actions/workflows/ci.yml/badge.svg)](https://github.com/Borewit/text-codec/actions/workflows/ci.yml)
-[![npm version](https://badge.fury.io/js/%40borewit%2Ftext-codec.svg)](https://www.npmjs.com/package/@borewit/text-codec)
+[![npm version](https://img.shields.io/npm/v/%40borewit%2Ftext-codec.svg)](https://www.npmjs.com/package/@borewit/text-codec)
 [![npm downloads](http://img.shields.io/npm/dm/@borewit/text-codec.svg)](https://npmcharts.com/compare/@borewit/text-codec?interval=30)
 ![bundlejs](https://deno.bundlejs.com/?q=@borewit/text-codec&badge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?logo=open-source-initiative&logoColor=white)](LICENSE.txt)
