@@ -1,4 +1,3 @@
-
 export type SupportedEncoding =
   | "utf-8"
   | "utf8"
@@ -23,21 +22,15 @@ for (const [code, char] of Object.entries(WINDOWS_1252_EXTRA)) {
 
 /**
  * Decode text from binary data
- * @param bytes Binary data
- * @param encoding Encoding
  */
 export function textDecode(
   bytes: Uint8Array,
   encoding: SupportedEncoding = "utf-8"
 ): string {
-
   switch (encoding.toLowerCase() as SupportedEncoding) {
     case "utf-8":
     case "utf8":
-      if (typeof globalThis.TextDecoder !== "undefined") {
-        return new globalThis.TextDecoder("utf-8").decode(bytes);
-      }
-      return decodeUTF8(bytes);
+      return new globalThis.TextDecoder("utf-8").decode(bytes);
     case "utf-16le":
       return decodeUTF16LE(bytes);
     case "ascii":
@@ -52,6 +45,9 @@ export function textDecode(
   }
 }
 
+/**
+ * Encode text into binary data
+ */
 export function textEncode(
   input = "",
   encoding: SupportedEncoding = "utf-8"
@@ -62,7 +58,7 @@ export function textEncode(
       if (typeof globalThis.TextEncoder !== "undefined") {
         return new globalThis.TextEncoder().encode(input);
       }
-      return encodeUTF8(input);
+      return encodeUTF8(input); // Hermes fallback
     case "utf-16le":
       return encodeUTF16LE(input);
     case "ascii":
@@ -77,40 +73,34 @@ export function textEncode(
   }
 }
 
-// --- Internal helpers ---
-
-function decodeUTF8(bytes: Uint8Array): string {
-  let out = "";
-  let i = 0;
-  while (i < bytes.length) {
-    const b1 = bytes[i++];
-    if (b1 < 0x80) {
-      out += String.fromCharCode(b1);
-    } else if (b1 < 0xe0) {
-      const b2 = bytes[i++] & 0x3f;
-      out += String.fromCharCode(((b1 & 0x1f) << 6) | b2);
-    } else if (b1 < 0xf0) {
-      const b2 = bytes[i++] & 0x3f;
-      const b3 = bytes[i++] & 0x3f;
-      out += String.fromCharCode(((b1 & 0x0f) << 12) | (b2 << 6) | b3);
-    } else {
-      const b2 = bytes[i++] & 0x3f;
-      const b3 = bytes[i++] & 0x3f;
-      const b4 = bytes[i++] & 0x3f;
-      let cp =
-        ((b1 & 0x07) << 18) |
-        (b2 << 12) |
-        (b3 << 6) |
-        b4;
-      cp -= 0x10000;
-      out += String.fromCharCode(
-        0xd800 + ((cp >> 10) & 0x3ff),
-        0xdc00 + (cp & 0x3ff)
-      );
-    }
+/**
+ * Exported TextDecoder polyfill
+ */
+export class TextDecoder {
+  readonly encoding: SupportedEncoding;
+  constructor(encoding: SupportedEncoding = "utf-8") {
+    this.encoding = encoding;
   }
-  return out;
+  decode(bytes: Uint8Array): string {
+    return textDecode(bytes, this.encoding);
+  }
 }
+
+/**
+ * Extended TextEncoder polyfill
+ * Supports all encodings in SupportedEncoding (non-spec compliant)
+ */
+export class TextEncoder {
+  readonly encoding: SupportedEncoding;
+  constructor(encoding: SupportedEncoding = "utf-8") {
+    this.encoding = encoding;
+  }
+  encode(input: string): Uint8Array {
+    return textEncode(input, this.encoding);
+  }
+}
+
+// --- Internal helpers ---
 
 function decodeUTF16LE(bytes: Uint8Array): string {
   let out = "";

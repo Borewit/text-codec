@@ -69,6 +69,15 @@ const bytes = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]);
 const text = textDecode(bytes, "ascii");
 console.log(text); // "Hello"
 ```
+Or Node.js style decoding:
+```js
+import { TextEncoder } from "@borewit/text-encode";
+
+const bytes = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]);
+const text = new TextEncoder("ascii").decode(bytes);
+console.log(text); // "Hello"
+```
+
 Encodes a JavaScript string into binary form using the specified encoding.
 
 ## `textEncode(input, encoding): Uint8Array`
@@ -87,6 +96,13 @@ Example:
 import { textEncode } from "@borewit/text-encode";
 
 const bytes = textEncode("Hello", "utf-16le");
+console.log(bytes); // Uint8Array([...])
+```
+or using `TextEncoder`
+```js
+import { TextEncoder } from "@borewit/text-encode";
+
+const bytes = new TextEncoder("utf-16le").encode("Hello");
 console.log(bytes); // Uint8Array([...])
 ```
 
