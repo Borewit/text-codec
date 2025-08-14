@@ -12,6 +12,7 @@
   "scripts": {
     "clean": "del-cli lib/**/*.js lib/***.js.map test/**/*.d.ts test/**/*.js test/**/*.js.map",
     "build": "npm run compile",
+    "prepublishOnly": "npm run build",
     "compile:src": "tsc --p lib --sourceMap false",
     "compile:test": "tsc --p test",
     "compile": "npm run compile:src && npm run compile:test",
@@ -53,10 +54,7 @@
     "hermes",
     "react"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Borewit/text-codec"
-  },
+  "repository": "Borewit/text-codec",
   "author": {
     "name": "Borewit",
     "url": "https://github.com/Borewit"
