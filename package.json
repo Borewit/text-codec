@@ -21,7 +21,7 @@
     "update-biome": "npm install --save-dev --save-exact @biomejs/biome && npx @biomejs/biome migrate --write"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.1.4",
+    "@biomejs/biome": "2.2.2",
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
     "chai": "^5.2.1",
