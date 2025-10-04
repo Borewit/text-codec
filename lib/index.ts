@@ -3,6 +3,7 @@ export type SupportedEncoding =
   | "utf-8"
   | "utf8"
   | "utf-16le"
+  | "us-ascii"
   | "ascii"
   | "latin1"
   | "iso-8859-1"
@@ -40,6 +41,7 @@ export function textDecode(
       return decodeUTF8(bytes);
     case "utf-16le":
       return decodeUTF16LE(bytes);
+    case "us-ascii":
     case "ascii":
       return decodeASCII(bytes);
     case "latin1":
@@ -65,6 +67,7 @@ export function textEncode(
       return encodeUTF8(input);
     case "utf-16le":
       return encodeUTF16LE(input);
+    case "us-ascii":
     case "ascii":
       return encodeASCII(input);
     case "latin1":
