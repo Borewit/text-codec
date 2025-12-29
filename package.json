@@ -27,7 +27,7 @@
     "chai": "^5.2.1",
     "mocha": "^11.7.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
   "keywords": [
     "TextDecoder",
