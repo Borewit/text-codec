@@ -1,4 +1,3 @@
-
 export type SupportedEncoding =
   | "utf-8"
   | "utf8"
@@ -18,8 +17,25 @@ const WINDOWS_1252_EXTRA: Record<number, string> = {
 
 const WINDOWS_1252_REVERSE: Record<string, number> = {};
 for (const [code, char] of Object.entries(WINDOWS_1252_EXTRA)) {
-  WINDOWS_1252_REVERSE[char] = Number.parseInt(code);
+  WINDOWS_1252_REVERSE[char] = Number.parseInt(code, 10);
 }
+
+// ---------- Cached decoders/encoders ----------
+let _utf8Decoder: TextDecoder | undefined;
+let _utf8Encoder: TextEncoder | undefined;
+
+function utf8Decoder(): TextDecoder | undefined {
+  if (typeof globalThis.TextDecoder === "undefined") return undefined;
+  return (_utf8Decoder ??= new globalThis.TextDecoder("utf-8"));
+}
+function utf8Encoder(): TextEncoder | undefined {
+  if (typeof globalThis.TextEncoder === "undefined") return undefined;
+  return (_utf8Encoder ??= new globalThis.TextEncoder());
+}
+
+// Safe chunk size well under your measured ~105k cliff.
+// 32k keeps memory reasonable and is plenty fast.
+const CHUNK = 32 * 1024;
 
 /**
  * Decode text from binary data
@@ -30,14 +46,12 @@ export function textDecode(
   bytes: Uint8Array,
   encoding: SupportedEncoding = "utf-8"
 ): string {
-
   switch (encoding.toLowerCase() as SupportedEncoding) {
     case "utf-8":
-    case "utf8":
-      if (typeof globalThis.TextDecoder !== "undefined") {
-        return new globalThis.TextDecoder("utf-8").decode(bytes);
-      }
-      return decodeUTF8(bytes);
+    case "utf8": {
+      const dec = utf8Decoder();
+      return dec ? dec.decode(bytes) : decodeUTF8(bytes);
+    }
     case "utf-16le":
       return decodeUTF16LE(bytes);
     case "ascii":
@@ -58,11 +72,10 @@ export function textEncode(
 ): Uint8Array {
   switch (encoding.toLowerCase() as SupportedEncoding) {
     case "utf-8":
-    case "utf8":
-      if (typeof globalThis.TextEncoder !== "undefined") {
-        return new globalThis.TextEncoder().encode(input);
-      }
-      return encodeUTF8(input);
+    case "utf8": {
+      const enc = utf8Encoder();
+      return enc ? enc.encode(input) : encodeUTF8(input);
+    }
     case "utf-16le":
       return encodeUTF16LE(input);
     case "ascii":
@@ -80,6 +93,7 @@ export function textEncode(
 // --- Internal helpers ---
 
 function decodeUTF8(bytes: Uint8Array): string {
+  const parts: string[] = [];
   let out = "";
   let i = 0;
   while (i < bytes.length) {
@@ -97,53 +111,107 @@ function decodeUTF8(bytes: Uint8Array): string {
       const b2 = bytes[i++] & 0x3f;
       const b3 = bytes[i++] & 0x3f;
       const b4 = bytes[i++] & 0x3f;
-      let cp =
-        ((b1 & 0x07) << 18) |
-        (b2 << 12) |
-        (b3 << 6) |
-        b4;
+      let cp = ((b1 & 0x07) << 18) | (b2 << 12) | (b3 << 6) | b4;
       cp -= 0x10000;
       out += String.fromCharCode(
         0xd800 + ((cp >> 10) & 0x3ff),
         0xdc00 + (cp & 0x3ff)
       );
     }
+
+    if (out.length >= CHUNK) {
+      parts.push(out);
+      out = "";
+    }
   }
-  return out;
+
+  if (out) parts.push(out);
+  return parts.join("");
 }
 
 function decodeUTF16LE(bytes: Uint8Array): string {
-  let out = "";
-  for (let i = 0; i < bytes.length; i += 2) {
-    out += String.fromCharCode(bytes[i] | (bytes[i + 1] << 8));
+  // Use chunked fromCharCode on 16-bit code units.
+  // If odd length, ignore trailing byte (common behavior).
+  const len = bytes.length & ~1;
+  if (len === 0) return "";
+
+  const parts: string[] = [];
+  // Build a temporary code-unit array per chunk.
+  const maxUnits = CHUNK; // CHUNK code units per chunk
+
+  for (let i = 0; i < len; ) {
+    const unitsThis = Math.min(maxUnits, (len - i) >> 1);
+    const units = new Array<number>(unitsThis);
+    for (let j = 0; j < unitsThis; j++, i += 2) {
+      units[j] = bytes[i] | (bytes[i + 1] << 8);
+    }
+    parts.push(String.fromCharCode.apply(null, units as unknown as number[]));
   }
-  return out;
+  return parts.join("");
 }
 
 function decodeASCII(bytes: Uint8Array): string {
-  return String.fromCharCode(...bytes.map((b) => b & 0x7f));
+  // 7-bit ASCII: mask high bit. (Kept to match your original semantics.)
+  const parts: string[] = [];
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    const end = Math.min(bytes.length, i + CHUNK);
+    const codes = new Array<number>(end - i);
+    for (let j = i, k = 0; j < end; j++, k++) {
+      codes[k] = bytes[j] & 0x7f;
+    }
+    parts.push(String.fromCharCode.apply(null, codes as unknown as number[]));
+  }
+  return parts.join("");
 }
 
 function decodeLatin1(bytes: Uint8Array): string {
-  return String.fromCharCode(...bytes);
+  // Latin-1 is 0x00..0xFF direct mapping; avoid spread.
+  const parts: string[] = [];
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    const end = Math.min(bytes.length, i + CHUNK);
+    const codes = new Array<number>(end - i);
+    for (let j = i, k = 0; j < end; j++, k++) {
+      codes[k] = bytes[j];
+    }
+    parts.push(String.fromCharCode.apply(null, codes as unknown as number[]));
+  }
+  return parts.join("");
 }
 
 function decodeWindows1252(bytes: Uint8Array): string {
+  // Only 0x80..0x9F need mapping; others are direct 1-byte codes.
+  const parts: string[] = [];
   let out = "";
-  for (const b of bytes) {
-    if (b >= 0x80 && b <= 0x9f && WINDOWS_1252_EXTRA[b]) {
-      out += WINDOWS_1252_EXTRA[b];
-    } else {
-      out += String.fromCharCode(b);
+
+  for (let i = 0; i < bytes.length; i++) {
+    const b = bytes[i];
+    const extra = b >= 0x80 && b <= 0x9f ? WINDOWS_1252_EXTRA[b] : undefined;
+    out += extra ?? String.fromCharCode(b);
+
+    if (out.length >= CHUNK) {
+      parts.push(out);
+      out = "";
     }
   }
-  return out;
+
+  if (out) parts.push(out);
+  return parts.join("");
 }
 
 function encodeUTF8(str: string): Uint8Array {
   const out: number[] = [];
   for (let i = 0; i < str.length; i++) {
-    const cp = str.charCodeAt(i);
+    let cp = str.charCodeAt(i);
+
+    // surrogate pair
+    if (cp >= 0xd800 && cp <= 0xdbff && i + 1 < str.length) {
+      const lo = str.charCodeAt(i + 1);
+      if (lo >= 0xdc00 && lo <= 0xdfff) {
+        cp = 0x10000 + ((cp - 0xd800) << 10) + (lo - 0xdc00);
+        i++;
+      }
+    }
+
     if (cp < 0x80) {
       out.push(cp);
     } else if (cp < 0x800) {
@@ -170,28 +238,38 @@ function encodeUTF16LE(str: string): Uint8Array {
   const out = new Uint8Array(str.length * 2);
   for (let i = 0; i < str.length; i++) {
     const code = str.charCodeAt(i);
-    out[i * 2] = code & 0xff;
-    out[i * 2 + 1] = code >> 8;
+    const o = i * 2;
+    out[o] = code & 0xff;
+    out[o + 1] = code >>> 8;
   }
   return out;
 }
 
 function encodeASCII(str: string): Uint8Array {
-  return new Uint8Array([...str].map((ch) => ch.charCodeAt(0) & 0x7f));
+  // 7-bit ASCII: mask high bit
+  const out = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) out[i] = str.charCodeAt(i) & 0x7f;
+  return out;
 }
 
 function encodeLatin1(str: string): Uint8Array {
-  return new Uint8Array([...str].map((ch) => ch.charCodeAt(0) & 0xff));
+  const out = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) out[i] = str.charCodeAt(i) & 0xff;
+  return out;
 }
 
 function encodeWindows1252(str: string): Uint8Array {
-  return new Uint8Array(
-    [...str].map((ch) => {
-      const code = ch.charCodeAt(0);
-      if (code <= 0xff) return code;
-      if (WINDOWS_1252_REVERSE[ch] !== undefined)
-        return WINDOWS_1252_REVERSE[ch];
-      return 0x3f; // '?'
-    })
-  );
+  const out = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    const code = ch.charCodeAt(0);
+
+    if (code <= 0xff) {
+      out[i] = code;
+      continue;
+    }
+    const mapped = WINDOWS_1252_REVERSE[ch];
+    out[i] = mapped !== undefined ? mapped : 0x3f; // '?'
+  }
+  return out;
 }
