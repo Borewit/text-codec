@@ -66,5 +66,8 @@
     "type": "github",
     "url": "https://github.com/sponsors/Borewit"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@exodus/bytes": "^1.14.0"
+  }
 }
