@@ -158,92 +158,25 @@ function decodeUTF8(bytes: Uint8Array): string {
       continue;
     }
 
-    // 2-byte sequence
-    if (b1 <= 0xdf) {
-      if (i + 1 >= bytes.length) {
-        pushCodeUnit(parts, chunk, REPLACEMENT);
-        i++;
-        continue;
-      }
+    const length = b1 <= 0xdf ? 2 : b1 <= 0xef ? 3 : 4;
+    let cp = b1 & (0x7f >> length);
+    let lower = b1 === 0xe0 ? 0xa0 : b1 === 0xf0 ? 0x90 : 0x80;
+    let upper = b1 === 0xed ? 0x9f : b1 === 0xf4 ? 0x8f : 0xbf;
+    let consumed = 1;
+    i++;
 
-      const b2 = bytes[i + 1];
-      if ((b2 & 0xc0) !== 0x80) {
-        pushCodeUnit(parts, chunk, REPLACEMENT);
-        i++;
-        continue;
-      }
-
-      const cp = ((b1 & 0x1f) << 6) | (b2 & 0x3f);
-      pushCodeUnit(parts, chunk, cp);
-      i += 2;
-      continue;
-    }
-
-    // 3-byte sequence
-    if (b1 <= 0xef) {
-      if (i + 2 >= bytes.length) {
-        pushCodeUnit(parts, chunk, REPLACEMENT);
-        i++;
-        continue;
-      }
-
-      const b2 = bytes[i + 1];
-      const b3 = bytes[i + 2];
-
-      const valid =
-        (b2 & 0xc0) === 0x80 &&
-        (b3 & 0xc0) === 0x80 &&
-        !(b1 === 0xe0 && b2 < 0xa0) && // overlong
-        !(b1 === 0xed && b2 >= 0xa0);  // surrogate range
-
-      if (!valid) {
-        pushCodeUnit(parts, chunk, REPLACEMENT);
-        i++;
-        continue;
-      }
-
-      const cp =
-        ((b1 & 0x0f) << 12) |
-        ((b2 & 0x3f) << 6) |
-        (b3 & 0x3f);
-
-      pushCodeUnit(parts, chunk, cp);
-      i += 3;
-      continue;
-    }
-
-    // 4-byte sequence
-    if (i + 3 >= bytes.length) {
-      pushCodeUnit(parts, chunk, REPLACEMENT);
+    // Consume only the valid prefix. An interrupting byte starts a new sequence.
+    while (consumed < length && i < bytes.length) {
+      const next = bytes[i];
+      if (next < lower || next > upper) break;
+      cp = (cp << 6) | (next & 0x3f);
+      consumed++;
       i++;
-      continue;
+      lower = 0x80;
+      upper = 0xbf;
     }
 
-    const b2 = bytes[i + 1];
-    const b3 = bytes[i + 2];
-    const b4 = bytes[i + 3];
-
-    const valid =
-      (b2 & 0xc0) === 0x80 &&
-      (b3 & 0xc0) === 0x80 &&
-      (b4 & 0xc0) === 0x80 &&
-      !(b1 === 0xf0 && b2 < 0x90) && // overlong
-      !(b1 === 0xf4 && b2 > 0x8f);   // > U+10FFFF
-
-    if (!valid) {
-      pushCodeUnit(parts, chunk, REPLACEMENT);
-      i++;
-      continue;
-    }
-
-    const cp =
-      ((b1 & 0x07) << 18) |
-      ((b2 & 0x3f) << 12) |
-      ((b3 & 0x3f) << 6) |
-      (b4 & 0x3f);
-
-    pushCodePoint(parts, chunk, cp);
-    i += 4;
+    pushCodePoint(parts, chunk, consumed === length ? cp : REPLACEMENT);
   }
 
   flushChunk(parts, chunk);
