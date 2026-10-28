@@ -43,21 +43,29 @@ for (const [code, char] of Object.entries(WINDOWS_1252_EXTRA)) {
   WINDOWS_1252_REVERSE[char] = Number.parseInt(code, 10);
 }
 
-let _utf8Decoder: TextDecoder | undefined;
-let _utf8Encoder: TextEncoder | undefined;
+let _utf8Decoder: TextDecoder | null | undefined;
+let _utf8Encoder: TextEncoder | null | undefined;
 
 function utf8Decoder(): TextDecoder | undefined {
-  if (typeof globalThis.TextDecoder === 'undefined') {
-    return undefined;
+  if (_utf8Decoder === undefined) {
+    try {
+      _utf8Decoder = typeof globalThis.TextDecoder === 'undefined' ? null : new globalThis.TextDecoder('utf-8');
+    } catch {
+      _utf8Decoder = null;
+    }
   }
-  return (_utf8Decoder ??= new globalThis.TextDecoder('utf-8'));
+  return _utf8Decoder ?? undefined;
 }
 
 function utf8Encoder(): TextEncoder | undefined {
-  if (typeof globalThis.TextEncoder === 'undefined') {
-    return undefined;
+  if (_utf8Encoder === undefined) {
+    try {
+      _utf8Encoder = typeof globalThis.TextEncoder === 'undefined' ? null : new globalThis.TextEncoder();
+    } catch {
+      _utf8Encoder = null;
+    }
   }
-  return (_utf8Encoder ??= new globalThis.TextEncoder());
+  return _utf8Encoder ?? undefined;
 }
 
 const CHUNK = 32 * 1024;
