@@ -66,7 +66,43 @@ describe("Text polyfill encode/decode", () => {
 
       it("should replace truncated 4-byte sequences", () => {
         const bytes = Uint8Array.of(0xf0, 0x90, 0x80);
-        expect(textDecode(bytes, "utf-8")).to.equal("\uFFFD\uFFFD\uFFFD");
+        expect(textDecode(bytes, "utf-8")).to.equal("\uFFFD");
+      });
+
+      it("should replace each truncated valid UTF-8 prefix only once", () => {
+        const sequences = [
+          [0xc2, 0x80], [0xdf, 0xbf],
+          [0xe0, 0xa0, 0x80], [0xe1, 0x80, 0x80],
+          [0xed, 0x9f, 0xbf], [0xef, 0xbf, 0xbf],
+          [0xf0, 0x90, 0x80, 0x80], [0xf1, 0x80, 0x80, 0x80],
+          [0xf4, 0x8f, 0xbf, 0xbf]
+        ];
+        for (const sequence of sequences) {
+          for (let length = 1; length < sequence.length; length++) {
+            const prefix = sequence.slice(0, length);
+            expect(textDecode(Uint8Array.from(prefix), "utf-8")).to.equal("\uFFFD");
+            // The interrupting byte must be decoded again after replacing the prefix.
+            expect(textDecode(Uint8Array.from([...prefix, 0x41]), "utf-8")).to.equal("\uFFFDA");
+            expect(textDecode(Uint8Array.from([...prefix, 0xc2, 0xa2]), "utf-8")).to.equal("\uFFFD¢");
+          }
+        }
+      });
+
+      it("should match native UTF-8 decoding across continuation boundaries", () => {
+        if (!originalTextDecoder) return;
+        const decoder = new originalTextDecoder("utf-8");
+        const boundaries = [0x00, 0x7f, 0x80, 0x8f, 0x90, 0x9f, 0xa0, 0xbf, 0xc0, 0xff];
+        for (let lead = 0xc2; lead <= 0xf4; lead++) {
+          for (const second of boundaries) {
+            for (const third of boundaries) {
+              const sequence = [lead, second, third, 0x80];
+              for (let length = 1; length <= sequence.length; length++) {
+                const bytes = Uint8Array.from(sequence.slice(0, length));
+                expect(textDecode(bytes, "utf-8"), bytes.toString()).to.equal(decoder.decode(bytes));
+              }
+            }
+          }
+        }
       });
 
       it("should replace malformed 4-byte overlong sequences", () => {
