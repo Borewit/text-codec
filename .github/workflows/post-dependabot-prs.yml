@@ -1,22 +1,38 @@
-  name: Dependabot Pull Request
-  on: pull_request_target
-  jobs:
-    build:
-      runs-on: ubuntu-latest
-      if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
-      steps:
-        - name: Fetch Dependabot metadata
-          id: dependabot-metadata
-          uses: dependabot/fetch-metadata@v1
-          with:
-            github-token: "${{ secrets.GITHUB_TOKEN }}"
-        - name: Add dev-dependencies label
-          uses: actions-ecosystem/action-add-labels@v1
-          if: ${{ steps.dependabot-metadata.outputs.dependency-type == 'direct:development' }}
-          with:
-            labels: dev-dependencies
-        - name: Remove dependencies label
-          uses: actions-ecosystem/action-remove-labels@v1
-          if: ${{ steps.dependabot-metadata.outputs.dependency-type == 'direct:development' }}
-          with:
-            labels: dependencies
+name: Dependabot Pull Request
+on: pull_request_target
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: dependabot-labels-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
+    steps:
+      - name: Fetch Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+      # Execute only base-branch code; read PR manifests and lockfiles as API data.
+      - uses: actions/checkout@v7
+        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'npm_and_yarn' }}
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts/dependabot
+      - name: Label dependency scope
+        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'npm_and_yarn' }}
+        uses: actions/github-script@v9
+        env:
+          DEPENDENCY_NAMES: ${{ steps.dependabot-metadata.outputs.dependency-names }}
+        with:
+          script: |
+            const label = require('./.github/scripts/dependabot/label.cjs');
+            await label({github, context, core,
+              dependencyNames: process.env.DEPENDENCY_NAMES.split(',').map(name => name.trim()).filter(Boolean)});
