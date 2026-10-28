@@ -1,69 +1,109 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
-	"assist": { "actions": { "source": { "organizeImports": "off" } } },
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "single"
-		}
-	},
-	"formatter": {
-		"enabled": false
-	},
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"correctness": {
-				"noConstantCondition": "warn",
-				"noUnusedImports": "error"
-			},
-			"style": {
-				"noParameterAssign": "off",
-				"useConst": "error",
-				"useConsistentBuiltinInstantiation": "error",
-				"useThrowNewError": "error",
-				"useThrowOnlyError": "error",
-				"useAsConstAssertion": "error",
-				"useDefaultParameterLast": "error",
-				"useEnumInitializers": "error",
-				"useSelfClosingElements": "error",
-				"useSingleVarDeclarator": "error",
-				"noUnusedTemplateLiteral": "error",
-				"useNumberNamespace": "error",
-				"noInferrableTypes": "error",
-				"noUselessElse": "error",
-				"noRestrictedImports": {
-					"level": "error",
-					"options": {
-						"paths": {
-							"node:buffer": "Use Uint8Array instead of Buffer"
-						}
-					}
-				}
-			},
-			"recommended": true,
-			"complexity": {
-				"useSimpleNumberKeys": "off", // In some files we want to use hexadecimal keys
-				"noForEach": "off"
-			},
-			"suspicious": {
-				"noEmptyBlockStatements": "off",
-				"noControlCharactersInRegex": "off",
-				"useErrorMessage": "error",
-				"noAssignInExpressions": "off"
-			},
-			"nursery": {}
-		}
-	},
-	"files": {
-		"ignoreUnknown": true,
-		"includes": [
-			"**",
-			"!coverage",
-			"!yarn",
-			"!lib/**/*.d.ts",
-			"!lib/**/*.js",
-			"!test/**/*.d.ts",
-			"!test/**/*.js"
-		]
-	}
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "none",
+      "arrowParentheses": "asNeeded",
+      "bracketSpacing": true
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120,
+    "lineEnding": "lf"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "correctness": {
+        "noConstantCondition": "warn",
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error"
+      },
+      "style": {
+        // Code point encoders update their numeric parameters while splitting surrogate pairs.
+        "noParameterAssign": "off",
+        "useConst": "error",
+        "useConsistentBuiltinInstantiation": "error",
+        "useThrowNewError": "error",
+        "useThrowOnlyError": "error",
+        "useAsConstAssertion": "error",
+        "useDefaultParameterLast": "error",
+        "useEnumInitializers": "error",
+        "useSelfClosingElements": "error",
+        "useSingleVarDeclarator": "error",
+        "noUnusedTemplateLiteral": "error",
+        "useNumberNamespace": "error",
+        "noInferrableTypes": "error",
+        "noUselessElse": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "node:buffer": "Use Uint8Array instead of Buffer"
+            }
+          }
+        },
+        "useBlockStatements": "error",
+        "useConsistentArrayType": {
+          "level": "error",
+          "options": {
+            "syntax": "shorthand"
+          }
+        },
+        "useImportType": "error",
+        "useExportType": "error",
+        "useNodejsImportProtocol": "error"
+      },
+      "preset": "recommended",
+      "complexity": {
+        // Hexadecimal keys document the Windows-1252 byte mapping.
+        "useSimpleNumberKeys": "off",
+        "noForEach": "off"
+      },
+      "suspicious": {
+        "noEmptyBlockStatements": "off",
+        "noControlCharactersInRegex": "off",
+        "useErrorMessage": "error",
+        "noAssignInExpressions": "off",
+        "noExplicitAny": "error"
+      },
+      "nursery": {}
+    }
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "biome.jsonc",
+      "package.json",
+      ".mocharc.json",
+      "tsconfig.json",
+      "lib/**/*.ts",
+      "lib/tsconfig.json",
+      "test/**/*.ts",
+      "test/tsconfig.json",
+      "!**/*.d.ts"
+    ]
+  },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  }
 }
