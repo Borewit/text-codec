@@ -133,6 +133,91 @@ describe('Text polyfill encode/decode', () => {
         expect([...bytes]).to.deep.equal([0xf0, 0x9d, 0x84, 0x9e]);
       });
     });
+
+    describe('constructor fallback', () => {
+      const loadCodec = (label: string): Promise<typeof import('../lib/index.js')> =>
+        import(`../lib/index.js?${label}`);
+
+      it('should use the fallback and cache unavailable constructors', async () => {
+        const utf8Globals: Partial<Pick<typeof globalThis, 'TextDecoder' | 'TextEncoder'>> = globalThis;
+        const originalTextDecoder = utf8Globals.TextDecoder;
+        const originalTextEncoder = utf8Globals.TextEncoder;
+        let decoderConstructions = 0;
+        let encoderConstructions = 0;
+
+        class ThrowingTextDecoder {
+          constructor() {
+            decoderConstructions++;
+            throw new Error('TextDecoder constructor failed');
+          }
+        }
+
+        class ThrowingTextEncoder {
+          constructor() {
+            encoderConstructions++;
+            throw new Error('TextEncoder constructor failed');
+          }
+        }
+
+        utf8Globals.TextDecoder = ThrowingTextDecoder as unknown as typeof globalThis.TextDecoder;
+        utf8Globals.TextEncoder = ThrowingTextEncoder as unknown as typeof globalThis.TextEncoder;
+
+        try {
+          const { textDecode: decode, textEncode: encode } = await loadCodec('throwing-constructors');
+          expect(decode(Uint8Array.of(0x41), 'utf-8')).to.equal('A');
+          expect(decode(Uint8Array.of(0x41), 'utf-8')).to.equal('A');
+          expect([...encode('A', 'utf-8')]).to.deep.equal([0x41]);
+          expect([...encode('A', 'utf-8')]).to.deep.equal([0x41]);
+          expect(decoderConstructions).to.equal(1);
+          expect(encoderConstructions).to.equal(1);
+        } finally {
+          utf8Globals.TextDecoder = originalTextDecoder;
+          utf8Globals.TextEncoder = originalTextEncoder;
+        }
+      });
+
+      it('should not swallow decoder operation errors', async () => {
+        const utf8Globals: Partial<Pick<typeof globalThis, 'TextDecoder'>> = globalThis;
+        const originalTextDecoder = utf8Globals.TextDecoder;
+        const decodeError = new Error('TextDecoder decode failed');
+
+        class ThrowingDecode {
+          decode(): string {
+            throw decodeError;
+          }
+        }
+
+        utf8Globals.TextDecoder = ThrowingDecode as unknown as typeof globalThis.TextDecoder;
+
+        try {
+          const { textDecode: decode } = await loadCodec('throwing-decode');
+          expect(() => decode(Uint8Array.of(0x41), 'utf-8')).to.throw(decodeError);
+        } finally {
+          utf8Globals.TextDecoder = originalTextDecoder;
+        }
+      });
+
+      it('should not swallow encoder operation errors', async () => {
+        const utf8Globals: Partial<Pick<typeof globalThis, 'TextEncoder'>> = globalThis;
+        const originalTextEncoder = utf8Globals.TextEncoder;
+        const encodeError = new Error('TextEncoder encode failed');
+
+        class ThrowingEncode {
+          encode(): Uint8Array {
+            throw encodeError;
+          }
+        }
+
+        utf8Globals.TextEncoder = ThrowingEncode as unknown as typeof globalThis.TextEncoder;
+
+        try {
+          const { textEncode: encode } = await loadCodec('throwing-encode');
+          expect(() => encode('A', 'utf-8')).to.throw(encodeError);
+        } finally {
+          utf8Globals.TextEncoder = originalTextEncoder;
+        }
+      });
+    });
   });
 
   describe('UTF-16LE', () => {
