@@ -17,6 +17,7 @@
     "compile:test": "tsc --p test",
     "compile": "npm run compile:src && npm run compile:test",
     "lint": "biome check",
+    "pretest": "npm run build",
     "test": "mocha",
     "update-biome": "npm install --save-dev --save-exact @biomejs/biome@latest && npx @biomejs/biome migrate --write"
   },
@@ -26,8 +27,7 @@
     "@types/mocha": "^10.0.10",
     "chai": "^6.2.2",
     "mocha": "^11.8.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "7.0.2"
   },
   "keywords": [
     "TextDecoder",
