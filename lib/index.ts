@@ -1,19 +1,41 @@
 export type SupportedEncoding =
-  | "utf-8"
-  | "utf8"
-  | "utf-16le"
-  | "us-ascii"
-  | "ascii"
-  | "latin1"
-  | "iso-8859-1"
-  | "windows-1252";
+  | 'utf-8'
+  | 'utf8'
+  | 'utf-16le'
+  | 'us-ascii'
+  | 'ascii'
+  | 'latin1'
+  | 'iso-8859-1'
+  | 'windows-1252';
 
 const WINDOWS_1252_EXTRA: Record<number, string> = {
-  0x80: "€", 0x82: "‚", 0x83: "ƒ", 0x84: "„", 0x85: "…", 0x86: "†",
-  0x87: "‡", 0x88: "ˆ", 0x89: "‰", 0x8a: "Š", 0x8b: "‹", 0x8c: "Œ",
-  0x8e: "Ž", 0x91: "‘", 0x92: "’", 0x93: "“", 0x94: "”", 0x95: "•",
-  0x96: "–", 0x97: "—", 0x98: "˜", 0x99: "™", 0x9a: "š", 0x9b: "›",
-  0x9c: "œ", 0x9e: "ž", 0x9f: "Ÿ",
+  0x80: '€',
+  0x82: '‚',
+  0x83: 'ƒ',
+  0x84: '„',
+  0x85: '…',
+  0x86: '†',
+  0x87: '‡',
+  0x88: 'ˆ',
+  0x89: '‰',
+  0x8a: 'Š',
+  0x8b: '‹',
+  0x8c: 'Œ',
+  0x8e: 'Ž',
+  0x91: '‘',
+  0x92: '’',
+  0x93: '“',
+  0x94: '”',
+  0x95: '•',
+  0x96: '–',
+  0x97: '—',
+  0x98: '˜',
+  0x99: '™',
+  0x9a: 'š',
+  0x9b: '›',
+  0x9c: 'œ',
+  0x9e: 'ž',
+  0x9f: 'Ÿ'
 };
 
 const WINDOWS_1252_REVERSE: Record<string, number> = {};
@@ -25,12 +47,16 @@ let _utf8Decoder: TextDecoder | undefined;
 let _utf8Encoder: TextEncoder | undefined;
 
 function utf8Decoder(): TextDecoder | undefined {
-  if (typeof globalThis.TextDecoder === "undefined") return undefined;
-  return (_utf8Decoder ??= new globalThis.TextDecoder("utf-8"));
+  if (typeof globalThis.TextDecoder === 'undefined') {
+    return undefined;
+  }
+  return (_utf8Decoder ??= new globalThis.TextDecoder('utf-8'));
 }
 
 function utf8Encoder(): TextEncoder | undefined {
-  if (typeof globalThis.TextEncoder === "undefined") return undefined;
+  if (typeof globalThis.TextEncoder === 'undefined') {
+    return undefined;
+  }
   return (_utf8Encoder ??= new globalThis.TextEncoder());
 }
 
@@ -40,80 +66,63 @@ const REPLACEMENT = 0xfffd;
 /**
  * Decode text from binary data
  */
-export function textDecode(
-  bytes: Uint8Array,
-  encoding: SupportedEncoding = "utf-8"
-): string {
+export function textDecode(bytes: Uint8Array, encoding: SupportedEncoding = 'utf-8'): string {
   switch (encoding.toLowerCase() as SupportedEncoding) {
-    case "utf-8":
-    case "utf8": {
+    case 'utf-8':
+    case 'utf8': {
       const dec = utf8Decoder();
       return dec ? dec.decode(bytes) : decodeUTF8(bytes);
     }
-    case "utf-16le":
+    case 'utf-16le':
       return decodeUTF16LE(bytes);
-    case "us-ascii":
-    case "ascii":
+    case 'us-ascii':
+    case 'ascii':
       return decodeASCII(bytes);
-    case "latin1":
-    case "iso-8859-1":
+    case 'latin1':
+    case 'iso-8859-1':
       return decodeLatin1(bytes);
-    case "windows-1252":
+    case 'windows-1252':
       return decodeWindows1252(bytes);
     default:
       throw new RangeError(`Encoding '${encoding}' not supported`);
   }
 }
 
-export function textEncode(
-  input = "",
-  encoding: SupportedEncoding = "utf-8"
-): Uint8Array {
+export function textEncode(input = '', encoding: SupportedEncoding = 'utf-8'): Uint8Array {
   switch (encoding.toLowerCase() as SupportedEncoding) {
-    case "utf-8":
-    case "utf8": {
+    case 'utf-8':
+    case 'utf8': {
       const enc = utf8Encoder();
       return enc ? enc.encode(input) : encodeUTF8(input);
     }
-    case "utf-16le":
+    case 'utf-16le':
       return encodeUTF16LE(input);
-    case "us-ascii":
-    case "ascii":
+    case 'us-ascii':
+    case 'ascii':
       return encodeASCII(input);
-    case "latin1":
-    case "iso-8859-1":
+    case 'latin1':
+    case 'iso-8859-1':
       return encodeLatin1(input);
-    case "windows-1252":
+    case 'windows-1252':
       return encodeWindows1252(input);
     default:
       throw new RangeError(`Encoding '${encoding}' not supported`);
   }
 }
 
-function appendCodePoint(out: string[], cp: number): void {
-  if (cp <= 0xffff) {
-    out.push(String.fromCharCode(cp));
+function flushChunk(parts: string[], chunk: number[]): void {
+  if (chunk.length === 0) {
     return;
   }
-
-  cp -= 0x10000;
-  out.push(
-    String.fromCharCode(
-      0xd800 + (cp >> 10),
-      0xdc00 + (cp & 0x3ff)
-    )
-  );
-}
-
-function flushChunk(parts: string[], chunk: number[]): void {
-  if (chunk.length === 0) return;
   parts.push(String.fromCharCode.apply(null, chunk as unknown as number[]));
   chunk.length = 0;
 }
 
 function pushCodeUnit(parts: string[], chunk: number[], codeUnit: number): void {
   chunk.push(codeUnit);
-  if (chunk.length >= CHUNK) flushChunk(parts, chunk);
+  if (chunk.length >= CHUNK) {
+    flushChunk(parts, chunk);
+  }
 }
 
 function pushCodePoint(parts: string[], chunk: number[], cp: number): void {
@@ -133,12 +142,7 @@ function decodeUTF8(bytes: Uint8Array): string {
   let i = 0;
 
   // Match TextDecoder("utf-8") default BOM handling
-  if (
-    bytes.length >= 3 &&
-    bytes[0] === 0xef &&
-    bytes[1] === 0xbb &&
-    bytes[2] === 0xbf
-  ) {
+  if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
     i = 3;
   }
 
@@ -168,7 +172,9 @@ function decodeUTF8(bytes: Uint8Array): string {
     // Consume only the valid prefix. An interrupting byte starts a new sequence.
     while (consumed < length && i < bytes.length) {
       const next = bytes[i];
-      if (next < lower || next > upper) break;
+      if (next < lower || next > upper) {
+        break;
+      }
       cp = (cp << 6) | (next & 0x3f);
       consumed++;
       i++;
@@ -180,7 +186,7 @@ function decodeUTF8(bytes: Uint8Array): string {
   }
 
   flushChunk(parts, chunk);
-  return parts.join("");
+  return parts.join('');
 }
 
 function decodeUTF16LE(bytes: Uint8Array): string {
@@ -225,7 +231,7 @@ function decodeUTF16LE(bytes: Uint8Array): string {
   }
 
   flushChunk(parts, chunk);
-  return parts.join("");
+  return parts.join('');
 }
 
 function decodeASCII(bytes: Uint8Array): string {
@@ -238,7 +244,7 @@ function decodeASCII(bytes: Uint8Array): string {
     }
     parts.push(String.fromCharCode.apply(null, codes as unknown as number[]));
   }
-  return parts.join("");
+  return parts.join('');
 }
 
 function decodeLatin1(bytes: Uint8Array): string {
@@ -251,12 +257,12 @@ function decodeLatin1(bytes: Uint8Array): string {
     }
     parts.push(String.fromCharCode.apply(null, codes as unknown as number[]));
   }
-  return parts.join("");
+  return parts.join('');
 }
 
 function decodeWindows1252(bytes: Uint8Array): string {
   const parts: string[] = [];
-  let out = "";
+  let out = '';
 
   for (let i = 0; i < bytes.length; i++) {
     const b = bytes[i];
@@ -265,12 +271,14 @@ function decodeWindows1252(bytes: Uint8Array): string {
 
     if (out.length >= CHUNK) {
       parts.push(out);
-      out = "";
+      out = '';
     }
   }
 
-  if (out) parts.push(out);
-  return parts.join("");
+  if (out) {
+    parts.push(out);
+  }
+  return parts.join('');
 }
 
 function encodeUTF8(str: string): Uint8Array {
@@ -300,23 +308,11 @@ function encodeUTF8(str: string): Uint8Array {
     if (cp < 0x80) {
       out.push(cp);
     } else if (cp < 0x800) {
-      out.push(
-        0xc0 | (cp >> 6),
-        0x80 | (cp & 0x3f)
-      );
+      out.push(0xc0 | (cp >> 6), 0x80 | (cp & 0x3f));
     } else if (cp < 0x10000) {
-      out.push(
-        0xe0 | (cp >> 12),
-        0x80 | ((cp >> 6) & 0x3f),
-        0x80 | (cp & 0x3f)
-      );
+      out.push(0xe0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
     } else {
-      out.push(
-        0xf0 | (cp >> 18),
-        0x80 | ((cp >> 12) & 0x3f),
-        0x80 | ((cp >> 6) & 0x3f),
-        0x80 | (cp & 0x3f)
-      );
+      out.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
     }
   }
 
@@ -366,13 +362,17 @@ function encodeUTF16LE(str: string): Uint8Array {
 
 function encodeASCII(str: string): Uint8Array {
   const out = new Uint8Array(str.length);
-  for (let i = 0; i < str.length; i++) out[i] = str.charCodeAt(i) & 0x7f;
+  for (let i = 0; i < str.length; i++) {
+    out[i] = str.charCodeAt(i) & 0x7f;
+  }
   return out;
 }
 
 function encodeLatin1(str: string): Uint8Array {
   const out = new Uint8Array(str.length);
-  for (let i = 0; i < str.length; i++) out[i] = str.charCodeAt(i) & 0xff;
+  for (let i = 0; i < str.length; i++) {
+    out[i] = str.charCodeAt(i) & 0xff;
+  }
   return out;
 }
 
@@ -388,10 +388,7 @@ function encodeWindows1252(str: string): Uint8Array {
       continue;
     }
 
-    if (
-      (code >= 0x00 && code <= 0x7f) ||
-      (code >= 0xa0 && code <= 0xff)
-    ) {
+    if ((code >= 0x00 && code <= 0x7f) || (code >= 0xa0 && code <= 0xff)) {
       out[i] = code;
       continue;
     }
