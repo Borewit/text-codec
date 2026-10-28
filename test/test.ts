@@ -146,6 +146,21 @@ describe('Text polyfill encode/decode', () => {
       expect(textDecode(textEncode(str, 'utf-16le'), 'utf-16le')).to.equal(str);
     });
 
+    it('should strip an initial UTF-16LE BOM', () => {
+      const bytes = Uint8Array.of(0xff, 0xfe, 0x41, 0x00);
+      expect(textDecode(bytes, 'utf-16le')).to.equal('A');
+    });
+
+    it('should decode a standalone UTF-16LE BOM as an empty string', () => {
+      const bytes = Uint8Array.of(0xff, 0xfe);
+      expect(textDecode(bytes, 'utf-16le')).to.equal('');
+    });
+
+    it('should remove only the first of consecutive UTF-16LE BOMs', () => {
+      const bytes = Uint8Array.of(0xff, 0xfe, 0xff, 0xfe, 0x41, 0x00);
+      expect(textDecode(bytes, 'utf-16le')).to.equal('\uFEFFA');
+    });
+
     it('should replace odd trailing byte with U+FFFD', () => {
       const bytes = Uint8Array.of(0x41, 0x00, 0x42);
       expect(textDecode(bytes, 'utf-16le')).to.equal('A\uFFFD');

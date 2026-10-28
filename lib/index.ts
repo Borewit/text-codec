@@ -195,6 +195,12 @@ function decodeUTF16LE(bytes: Uint8Array): string {
   const len = bytes.length;
 
   let i = 0;
+
+  // Match TextDecoder("utf-16le") default BOM handling
+  if (len >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+    i = 2;
+  }
+
   while (i + 1 < len) {
     const u1 = bytes[i] | (bytes[i + 1] << 8);
     i += 2;
